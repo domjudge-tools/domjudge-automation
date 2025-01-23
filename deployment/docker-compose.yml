@@ -1,0 +1,66 @@
+x-judgedaemon-common-configuration: &judgedaemon-common-configuration
+  image: focker.ir/domjudge/judgehost:8.3.1
+  restart: unless-stopped
+  volumes:
+    - /sys/fs/cgroup:/sys/fs/cgroup
+  privileged: true
+
+services:
+  mariadb:
+    container_name: mariadb
+    image: focker.ir/mariadb:11.4.3-noble
+    volumes:
+      - mariadbdata:/var/lib/mysql
+    env_file:
+      - domserver.env
+    command: --max-connections=1000 --innodb-log-file-size=2G --max-allowed-packet=1G
+    user: mysql
+    restart: always
+
+  domserver:
+    container_name: domserver
+    image: focker.ir/domjudge/domserver:8.3.1
+    env_file:
+      - domserver.env
+    restart: always
+    depends_on:
+      - mariadb
+    volumes:
+      - ./entrypoint.sh:/usr/local/bin/entrypoint.sh
+      - ./judgehost.env:/judgehost.env
+    healthcheck:
+      test: [ "CMD", "/bin/bash", "/usr/local/bin/entrypoint.sh" ]
+      interval: 1s
+      timeout: 10s
+      retries: 10
+
+  judgedaemon1:
+    <<: *judgedaemon-common-configuration
+    hostname: judgedaemon-0
+    container_name: judgedaemon-0
+    environment:
+      DAEMON_ID: 0
+    depends_on:
+      - domserver
+    env_file:
+      - ./judgehost.env  # Use the environment file
+
+  caddy:
+    image: focker.ir/caddy:latest
+    container_name: caddy_server
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    depends_on:
+      - domserver
+
+volumes:
+  caddy_data:
+  caddy_config:
+  mariadbdata:
+  shared-data:

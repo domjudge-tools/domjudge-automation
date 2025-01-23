@@ -1,0 +1,5 @@
+before-contest/accounts.tsv
+before-contest/domjudge_users.json
+.env
+deployment/domserver.env
+deployment/judgehost.env

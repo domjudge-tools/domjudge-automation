@@ -1,0 +1,3 @@
+bircpc.ir {
+    reverse_proxy domserver:80
+}
