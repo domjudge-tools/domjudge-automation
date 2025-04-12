@@ -1,6 +1,9 @@
 import json
 import os
 import smtplib
+from dotenv import load_dotenv
+
+load_dotenv("D:\dev\domjudge\docker-compose-scripts\.env")
 
 
 def send_email(user, pwd, recipient, subject, body):
@@ -34,6 +37,8 @@ def send_email(user, pwd, recipient, subject, body):
 body = """Subject: BCPC League\n\n
 سلام بچه ها،
 
+مسابقه فینال به خاطر ثبت نام لحظه آخری 30 دقیقه با تاخیر برگزار میشه.
+
 اطلاعات ورود شما به شرح زیر است:
 
 یوزرنیم:
@@ -45,6 +50,9 @@ body = """Subject: BCPC League\n\n
 https://bircpc.ir/
 
 اگر مشکلی در ورود به سایت داشتید یا سوالی برایتان پیش آمد، از طریق ایمیل یا گروه تلگرام مارا مطلع کنید.
+
+همچنین می تونی اخبار و اطلاعات بیشتر درمورد مسابقمون رو توی آدرس وبلاگمون دنبال کنی.
+https://blog.bircpc.ir/
 
 با آرزوی موفقیت،
 انجمن علمی کامپیوتر دانشگاه بیرجند"""
@@ -59,28 +67,30 @@ server_ssl.login(sender_email_address, sender_email_password)
 passwords = {}
 with open("accounts.tsv", encoding="utf8") as f:
     passwords = {
-        line.split("\t")[-3]: line.split("\t")[-1] for line in f.readlines()[1:]
+        line.split("\t")[-2].strip(): line.split("\t")[-1].strip()
+        for line in f.readlines()[1:]
     }
-    
+
 
 with open("domjudge_users.json", encoding="utf8") as f:
     users = json.load(f)
-a = {
-    "TeamName": "Tid",
-}
 
 
-for _t, user in users.items():
-    tname = user["team"]
-    t = a[tname]
-    password = passwords[tname.replace("'", "&#039;").strip()]
+for T_id, user in users.items():
+    password = passwords[T_id]
 
-    print(t, user["email"], passwords[tname.replace("'", "&#039;").strip()])
+    print(
+        T_id,
+        " - ",
+        user["email"],
+        " - ",
+        passwords[T_id],
+    )
 
     server_ssl.sendmail(
         sender_email_address,
-        user["email"],
-        body.format(username=t, password=password).encode("utf8"),
+        "sd.eed1381@gmail.com",
+        body.format(username=T_id, password=password).encode("utf8"),
     )
 
     print("sent")

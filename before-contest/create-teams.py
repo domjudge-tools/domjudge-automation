@@ -3,14 +3,13 @@ import requests
 from urllib.parse import urljoin
 import random, string
 from requests_toolbelt import MultipartEncoder
+from dotenv import load_dotenv
 import os
+
+load_dotenv(r"D:\dev\domjudge\docker-compose-scripts\.env")
 
 PHPSESSID = os.environ.get("PHPSESSID")
 spreadsheet_id = os.environ.get("SPREADSHEET_ID")
-
-# # Universities data
-# with open("universities.json", encoding="utf8") as f:
-#     universities = json.load(f)
 
 # Dynamics
 # URL and headers
@@ -43,52 +42,7 @@ headers = {
 }
 
 
-def create_affiliations():
-    url = "https://bircpc.ir/jury/affiliations/add"
-
-    for uni_fa_name, university in universities.items():
-        if university["id"]:
-            continue
-
-        # Prepare form data
-        files = {
-            "team_affiliation[icpcid]": (None, ""),
-            "team_affiliation[shortname]": (None, university["shortname"]),
-            "team_affiliation[name]": (None, university["name"]),
-            "team_affiliation[country]": (None, university["country"]),
-            "team_affiliation[internalcomments]": (None, ""),
-            "team_affiliation[logoFile]": ("", "", "application/octet-stream"),
-            "team_affiliation[save]": (None, ""),
-        }
-
-        boundary = "----WebKitFormBoundary" + "".join(
-            random.sample(string.ascii_letters + string.digits, 16)
-        )
-        m = MultipartEncoder(fields=files, boundary=boundary)
-        headers["Content-Type"] = m.content_type
-
-        # Make POST request
-        response = requests.post(
-            url, headers=headers, cookies=cookies, data=m, allow_redirects=False
-        )
-
-        # Check for redirect
-        if response.status_code in [301, 302] and "Location" in response.headers:
-            redirect_url = urljoin(url, response.headers["Location"])
-            universities[uni_fa_name]["id"] = redirect_url.split("/")[-1]
-            print(
-                f"Redirect URL for {university['name']}: {universities[uni_fa_name]["id"]}"
-            )
-        else:
-            print(
-                f"Failed to create affiliation for {university['name']}: {response.status_code}"
-            )
-
-    with open("universities.json", "w", encoding="utf8") as f:
-        json.dump(universities, f)
-
-
-def create_team(team_name, display_name, affiliation_id, username):
+def create_team(team_name, display_name, username, affiliation_id=""):
     url = "https://bircpc.ir/jury/teams/add"
     files = {
         "team[icpcid]": (None, ""),
@@ -134,10 +88,11 @@ def get_users_from_sheet(spreadsheet_id):
     url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv"
     response = requests.get(url)
     users_data = response.content.decode()
-    users = users_data.split("\n")[1:]
+    users = users_data.split("\n")[2:]
 
     domjudge_users = {}
     for i, user in enumerate(users):
+        print(user)
         _timestamp, email, team_name, uni, _count, _user1, _user2, _user3, _contact = (
             user.split(",")
         )
@@ -154,28 +109,35 @@ def get_users_from_sheet(spreadsheet_id):
 
     return users
 
+
+# TODO it should return cleaned data
 users = get_users_from_sheet(spreadsheet_id)
 
-# domjudge_users = {}
+domjudge_users = {}
 
-# for i, user in enumerate(users):
-#     _timestamp, email, team_name, uni, _count, _user1, _user2, _user3, _contact = (
-#         user.split(",")
-#     )
-#     affiliation_id = universities.get(uni, {"id": ""})["id"]
-#     username = f"T{random.randint(1000, 9999)}{i}"
-#     print(", ".join([team_name, team_name, affiliation_id, username]))
+for i, user in enumerate(users):
+    _timestamp, email, team_name, uni, _count, _user1, _user2, _user3, _contact = (
+        user.split(",")
+    )
+    affiliation_id = ""  # universities.get(uni, {"id": ""})["id"]
+    username = f"T{random.randint(1000, 9999)}{i}"
+    print(", ".join([team_name, team_name, affiliation_id, username]))
 
-#     # TODO check team before creating to not exist
-#     team_id = create_team(team_name, team_name, affiliation_id, username)
-#     domjudge_users[username] = {
-#         "team_id": team_id,
-#         "username": username,
-#         "team": team_name,
-#         "uni": uni,
-#         "affiliation": affiliation_id,
-#         "email": email,
-#     }
+    # TODO check team before creating to not exist
+    team_id = create_team(
+        team_name=team_name,
+        display_name=team_name,
+        username=username,
+        affiliation_id=affiliation_id,
+    )
+    domjudge_users[username] = {
+        "team_id": team_id,
+        "username": username,
+        "team": team_name,
+        "uni": uni,
+        "affiliation": affiliation_id,
+        "email": email,
+    }
 
-#     with open("domjudge_users.json", "w", encoding="utf8") as f:
-#         json.dump(domjudge_users, f)
+    with open("domjudge_users.json", "w", encoding="utf8") as f:
+        json.dump(domjudge_users, f, indent=4, ensure_ascii=False)
