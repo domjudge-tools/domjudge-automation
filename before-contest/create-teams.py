@@ -5,21 +5,17 @@ import random, string
 from requests_toolbelt import MultipartEncoder
 from dotenv import load_dotenv
 import os
+import requests
+import os
+import time
+from bs4 import BeautifulSoup
 
-load_dotenv(r"D:\dev\domjudge\docker-compose-scripts\.env")
+# load_dotenv(r"D:\dev\domjudge\docker-compose-scripts\.env")
 
-PHPSESSID = os.environ.get("PHPSESSID")
-spreadsheet_id = os.environ.get("SPREADSHEET_ID")
-
-# Dynamics
-# URL and headers
-cookies = {
-    "domjudge_refresh": "1",
-    "domjudge_scorefilter": "%5B%5D",
-    "domjudge_refresh": "1",
-    "PHPSESSID": PHPSESSID,
-}
-
+username = "admin"
+password = "rpM7aJH3ZnKifBQ_"
+# spreadsheet_id = os.environ.get("SPREADSHEET_ID")
+spreadsheet_id = "1C5A4SJK7vEbgasJP5LdTg3FsqhhZuwy9PN6vpNvGyEs"
 
 headers = {
     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -40,6 +36,59 @@ headers = {
     "upgrade-insecure-requests": "1",
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
 }
+
+def login_bircpc():
+    # league_prefix = input("Enter prefix for zip files (for different leagues): ")
+    # contest_id = input("Enter bircpc contest_id: ")
+
+    login_url = "https://bircpc.ir/login"
+    session = requests.Session()
+
+    print("🌐 Waiting for domserver to be ready...")
+    for _ in range(30):
+        try:
+            response = session.get(login_url)
+            if response.status_code == 200:
+                print("✅ Domserver is up!")
+                break
+        except requests.RequestException:
+            pass
+        print("⏳ Domserver not ready yet... retrying in 2s")
+        time.sleep(2)
+    else:
+        print("❌ Domserver not available. Exiting.")
+        return
+
+    print("🌐 Fetching login page...")
+    login_page_html = response.content
+
+    print("🔍 Extracting CSRF token...")
+    soup = BeautifulSoup(login_page_html, "html.parser")
+    csrf_input = soup.find('input', {'name': '_csrf_token'})
+    if not csrf_input or not csrf_input['value']:
+        print("❌ CSRF token not found. Exiting.")
+        return
+
+    csrf_token = csrf_input['value']
+    print(f"✅ CSRF token extracted., {csrf_token}")
+
+    print(f"🔐 Logging in as '{username}'...")
+    login_data = {
+        "_username": username,
+        "_password": password,
+        "_csrf_token": csrf_token
+    }
+
+    login_response = session.post(login_url, data=login_data)
+    if login_response.ok and "Logout" in login_response.text:
+        print("✅ Logged in successfully.")
+    else:
+        print("❌ Login failed.")
+        return
+    print(session.cookies)
+    return session.cookies
+
+cookies = login_bircpc()
 
 
 def create_team(team_name, display_name, username, affiliation_id=""):
@@ -104,7 +153,7 @@ def get_users_from_sheet(spreadsheet_id):
             "email": email,
         }
 
-    with open("domjudge_users.json", "w", encoding="utf8") as f:
+    with open("domjudge_users_before.json", "w", encoding="utf8") as f:
         json.dump(domjudge_users, f, ensure_ascii=False, indent=4)
 
     return users
@@ -139,5 +188,5 @@ for i, user in enumerate(users):
         "email": email,
     }
 
-    with open("domjudge_users.json", "w", encoding="utf8") as f:
+    with open("domjudge_users_after.json", "w", encoding="utf8") as f:
         json.dump(domjudge_users, f, indent=4, ensure_ascii=False)

@@ -37,8 +37,6 @@ def send_email(user, pwd, recipient, subject, body):
 body = """Subject: BCPC League\n\n
 سلام بچه ها،
 
-مسابقه فینال به خاطر ثبت نام لحظه آخری 30 دقیقه با تاخیر برگزار میشه.
-
 اطلاعات ورود شما به شرح زیر است:
 
 یوزرنیم:
@@ -65,6 +63,7 @@ server_ssl.ehlo()  # optional, called by login()
 server_ssl.login(sender_email_address, sender_email_password)
 
 passwords = {}
+# TODO reset password with API
 with open("accounts.tsv", encoding="utf8") as f:
     passwords = {
         line.split("\t")[-2].strip(): line.split("\t")[-1].strip()
@@ -72,7 +71,7 @@ with open("accounts.tsv", encoding="utf8") as f:
     }
 
 
-with open("domjudge_users.json", encoding="utf8") as f:
+with open("domjudge_users_after.json", encoding="utf8") as f:
     users = json.load(f)
 
 
@@ -90,6 +89,8 @@ for T_id, user in users.items():
     server_ssl.sendmail(
         sender_email_address,
         "sd.eed1381@gmail.com",
+        # "parsyab1@gmail.com",
+        # user["email"],
         body.format(username=T_id, password=password).encode("utf8"),
     )
 
