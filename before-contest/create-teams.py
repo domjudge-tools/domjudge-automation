@@ -9,7 +9,6 @@ import time
 # Load environment variables
 load_dotenv()
 API_BASE = os.environ.get("DOMJUDGE_API_BASE", "https://bircpc.ir")
-CONTEST_ID = os.environ.get("DOMJUDGE_CONTEST_ID")
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 DOMJUDGE_USERNAME = os.environ.get("DOMJUDGE_USERNAME")
 DOMJUDGE_PASSWORD = os.environ.get("DOMJUDGE_PASSWORD")
@@ -66,13 +65,14 @@ def get_sheet_users(sheet_id):
     print(f"📄 Downloading sheet data from {url}")
     resp = requests.get(url)
     resp.raise_for_status()
-
+    
+    users_data = resp.content.decode()
     # Save raw sheet data for inspection
     with open('sheet_raw.csv', 'w', encoding='utf-8') as rawf:
-        rawf.write(resp.text)
+        rawf.write(users_data)
     print("💾 Saved raw sheet data to 'sheet_raw.csv'")
 
-    lines = resp.text.splitlines()[2:]
+    lines = users_data.splitlines()[2:]
     print(f"🧮 Retrieved {len(lines)} records from sheet")
     users = []
     for idx, line in enumerate(lines, start=1):
@@ -95,7 +95,7 @@ def get_sheet_users(sheet_id):
 
 
 def get_existing_teams():
-    url = f"{API_BASE}/api/v4/contests/{CONTEST_ID}/teams"
+    url = f"{API_BASE}/api/v4/teams"
     print(f"🔍 Fetching existing teams from {url}")
     resp = session.get(url)
     resp.raise_for_status()
@@ -105,7 +105,7 @@ def get_existing_teams():
 
 
 def get_existing_usernames():
-    url = f"{API_BASE}/api/v4/contests/{CONTEST_ID}/accounts"
+    url = f"{API_BASE}/api/v4/accounts"
     print(f"🔍 Fetching existing user accounts from {url}")
     resp = session.get(url)
     resp.raise_for_status()
@@ -116,7 +116,7 @@ def get_existing_usernames():
 # Fetch data
 sheet_users = get_sheet_users(SPREADSHEET_ID)
 existing_teams = get_existing_teams()
-existing_users = get_existing_usernames()
+# existing_users = get_existing_usernames()
 
 # Determine which teams to create
 new_entries = len(sheet_users)
@@ -124,8 +124,8 @@ to_create = [u for u in sheet_users if u['team'] not in existing_teams]
 print(f"⏳ {len(to_create)} new teams to create out of {new_entries} sheet entries")
 
 # Save payloads for review
-with open('teams_to_create.json', 'w') as f:
-    json.dump(to_create, f, indent=2)
+with open('teams_to_create.json', 'w', encoding="utf8") as f:
+    json.dump(to_create, f, indent=2, ensure_ascii=False)
 print("💾 Written teams_to_create.json")
 
 # Create teams with confirmation prompt
@@ -141,7 +141,7 @@ for idx, u in enumerate(to_create, start=1):
         'public_description': "",
     }
     print(f"🚀 [{idx}/{len(to_create)}] Creating team '{u['team']}' with payload: {payload}")
-    post_url = f"{API_BASE}/api/v4/contests/{CONTEST_ID}/teams"
+    post_url = f"{API_BASE}/api/v4/teams"
     resp = session.post(post_url, json=payload)
     if resp.status_code == 201:
         print(f"✅ Successfully created team '{u['team']}' (201)")
