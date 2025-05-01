@@ -11,8 +11,12 @@ load_dotenv()
 API_BASE = os.environ.get("DOMJUDGE_API_BASE", "https://bircpc.ir")
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 CONTEST_ID = os.environ.get("DOMJUDGE_CONTEST_ID", 3)
-DOMJUDGE_USERNAME = os.environ.get("DOMJUDGE_USERNAME")
-DOMJUDGE_PASSWORD = os.environ.get("DOMJUDGE_PASSWORD")
+DOMJUDGE_USERNAME = os.environ.get("DOMJUDGE_USERNAME", "")
+DOMJUDGE_PASSWORD = os.environ.get("DOMJUDGE_PASSWORD", "")
+
+if not DOMJUDGE_USERNAME or not DOMJUDGE_PASSWORD :
+    print("Both Username and Password are required.")
+    exit()
 
 # Prepare session with Basic Auth for API calls
 session = requests.Session()
