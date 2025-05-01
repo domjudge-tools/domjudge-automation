@@ -15,51 +15,6 @@ DOMJUDGE_PASSWORD = os.environ.get("DOMJUDGE_PASSWORD")
 
 session = requests.Session()
 
-def login():
-    login_url = f"{API_BASE}/login"
-    print(f"🔗 Connecting to {login_url}")
-    # Wait until login page is accessible
-    for attempt in range(1, 31):
-        try:
-            response = session.get(login_url)
-            if response.ok:
-                print(f"✅ Login page reachable (attempt {attempt})")
-                break
-        except requests.RequestException as e:
-            print(f"⚠️ Attempt {attempt} failed: {e}")
-        time.sleep(2)
-    else:
-        print("❌ Could not reach login page after 30 attempts. Exiting.")
-        return False
-
-    print("🌐 Fetching CSRF token from login page")
-    soup = BeautifulSoup(response.content, "html.parser")
-    csrf_input = soup.find('input', {'name': '_csrf_token'})
-    if not csrf_input or not csrf_input.get('value'):
-        print("❌ CSRF token not found. Exiting.")
-        return False
-    csrf_token = csrf_input['value']
-    print(f"🔑 CSRF token extracted: {csrf_token}")
-
-    print(f"👤 Logging in as '{DOMJUDGE_USERNAME}'...")
-    login_data = {
-        '_username': DOMJUDGE_USERNAME,
-        '_password': DOMJUDGE_PASSWORD,
-        '_csrf_token': csrf_token
-    }
-    login_resp = session.post(login_url, data=login_data)
-    if login_resp.ok and "Logout" in login_resp.text:
-        print("🔓 Logged in successfully.")
-        return True
-    else:
-        print(f"❌ Login failed (status {login_resp.status_code}).")
-        return False
-
-# Perform login
-if not login():
-    exit(1)
-
-
 def get_sheet_users(sheet_id):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
     print(f"📄 Downloading sheet data from {url}")
@@ -128,12 +83,14 @@ with open('teams_to_create.json', 'w', encoding="utf8") as f:
     json.dump(to_create, f, indent=2, ensure_ascii=False)
 print("💾 Written teams_to_create.json")
 
-# Create teams with confirmation prompt
+# Confirmation before creation
+confirm = input(f"Check 'teams_to_create.json': found {len(to_create)} non-existing teams. Do you want to create them? (y/n): ")
+if confirm.lower() != 'y':
+    print("❌ Aborting team creation.")
+    exit(0)
+
+# Create teams
 for idx, u in enumerate(to_create, start=1):
-    prompt = input(f"Create team '{u['team']}' for uni '{u['uni']}' with username '{u['username']}'? (y/n): ")
-    if prompt.lower() != 'y':
-        print(f"⏭️ Skipped team '{u['team']}'")
-        continue
     payload = {
         'name': u['team'],
         'display_name': u['team'],
