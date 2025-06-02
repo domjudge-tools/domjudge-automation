@@ -252,7 +252,6 @@ if __name__ == "__main__":
         print(f"✅ Team '{entry['team']}' created with ID {unique_id}")
 
         # Create user with same ID and email
-        rand_pass = "pass"
         user_payload = {
             "id": unique_id,
             "username": rand_user,
