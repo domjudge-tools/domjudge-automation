@@ -47,12 +47,14 @@ const createTeamsBulkValidation = [
  * /api/v1/teams:
  *   post:
  *     summary: Create a single team and user
+ *     description: Creates a new team and associated user account in DOMjudge. Auto-generates username and password if not provided.
  *     tags: [Teams]
  *     parameters:
  *       - in: query
  *         name: dryRun
  *         schema:
  *           type: boolean
+ *           default: false
  *         description: If true, simulate creation without actually creating
  *     requestBody:
  *       required: true
@@ -60,6 +62,22 @@ const createTeamsBulkValidation = [
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/CreateTeamRequest'
+ *           examples:
+ *             example1:
+ *               summary: Basic team creation
+ *               value:
+ *                 team: "Team Alpha"
+ *                 uni: "University of Technology"
+ *             example2:
+ *               summary: Team with all fields
+ *               value:
+ *                 team: "Team Beta"
+ *                 uni: "University of Science"
+ *                 username: "T12345"
+ *                 password: "securepass123"
+ *                 email: "teambeta@example.com"
+ *                 names: "John Doe, Jane Smith"
+ *                 phone: "1234567890"
  *     responses:
  *       201:
  *         description: Team and user created successfully
@@ -67,6 +85,12 @@ const createTeamsBulkValidation = [
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/CreateTeamResponse'
+ *             example:
+ *               success: true
+ *               teamId: 12345
+ *               userId: 12345
+ *               username: "T12345"
+ *               password: "abc123xyz"
  *       400:
  *         description: Bad request - validation error
  *         content:
@@ -98,6 +122,7 @@ router.post(
  * /api/v1/teams/bulk:
  *   post:
  *     summary: Create multiple teams and users in bulk
+ *     description: Creates multiple teams and associated user accounts in DOMjudge. Automatically skips teams that already exist.
  *     tags: [Teams]
  *     requestBody:
  *       required: true
@@ -105,6 +130,24 @@ router.post(
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/CreateTeamsBulkRequest'
+ *           examples:
+ *             example1:
+ *               summary: Bulk create teams
+ *               value:
+ *                 dryRun: false
+ *                 teams:
+ *                   - team: "Team Alpha"
+ *                     uni: "University A"
+ *                   - team: "Team Beta"
+ *                     uni: "University B"
+ *                     email: "teambeta@example.com"
+ *             example2:
+ *               summary: Dry run mode
+ *               value:
+ *                 dryRun: true
+ *                 teams:
+ *                   - team: "Team Gamma"
+ *                     uni: "University C"
  *     responses:
  *       201:
  *         description: Teams and users created successfully
@@ -112,6 +155,22 @@ router.post(
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/CreateTeamsBulkResponse'
+ *             example:
+ *               total: 2
+ *               created: 2
+ *               skipped: 0
+ *               failed: 0
+ *               results:
+ *                 - success: true
+ *                   teamId: 12345
+ *                   userId: 12345
+ *                   username: "T12345"
+ *                   password: "abc123xyz"
+ *               createdUsers:
+ *                 - team: "Team Alpha"
+ *                   id: 12345
+ *                   username: "T12345"
+ *                   password: "abc123xyz"
  *       400:
  *         description: Bad request - validation error
  *         content:

@@ -15,10 +15,21 @@ const options = {
     servers: [
       {
         url: `http://localhost:${config.server.port}`,
-        description: 'Development server',
+        description: 'Development server (localhost)',
+      },
+      {
+        url: `http://127.0.0.1:${config.server.port}`,
+        description: 'Development server (127.0.0.1)',
       },
     ],
     components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
       schemas: {
         CreateTeamRequest: {
           type: 'object',
