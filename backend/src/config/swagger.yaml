@@ -1,0 +1,896 @@
+openapi: 3.0.0
+info:
+  title: DOMjudge Automation API
+  version: 1.0.0
+  description: |
+    # DOMjudge Automation API
+    
+    API for automating team and user creation in DOMjudge contest management system.
+    
+    ## How to Test This API
+    
+    ### Using Swagger UI (Recommended)
+    
+    1. **Access Swagger UI**: Open `http://localhost:3000/api-docs` in your browser
+    2. **Select Server**: Choose the appropriate server from the dropdown (default: http://localhost:3000)
+    3. **Try an Endpoint**:
+       - Expand any endpoint section
+       - Click the **"Try it out"** button
+       - Fill in the request parameters or body
+       - Click **"Execute"** to send the request
+       - View the response below
+    
+    ### Testing Steps
+    
+    #### 1. Health Check (Start Here)
+    - Endpoint: `GET /health`
+    - Click "Try it out" → "Execute"
+    - Should return `{"status": "ok", ...}`
+    
+    #### 2. Create a Single Team
+    - Endpoint: `POST /api/v1/teams`
+    - Click "Try it out"
+    - Select an example from the dropdown or enter:
+      ```json
+      {
+        "team": "Test Team",
+        "uni": "Test University"
+      }
+      ```
+    - Click "Execute"
+    - Check the response for `teamId`, `username`, and `password`
+    
+    #### 3. Create Multiple Teams (Bulk)
+    - Endpoint: `POST /api/v1/teams/bulk`
+    - Click "Try it out"
+    - Use the example or enter multiple teams:
+      ```json
+      {
+        "dryRun": false,
+        "teams": [
+          {"team": "Team 1", "uni": "University A"},
+          {"team": "Team 2", "uni": "University B"}
+        ]
+      }
+      ```
+    - Click "Execute"
+    - Review the response with creation statistics
+    
+    #### 4. Dry Run Mode (Test Without Creating)
+    - Add `?dryRun=true` query parameter to `POST /api/v1/teams`
+    - Or set `"dryRun": true` in bulk request body
+    - This simulates creation without actually creating teams
+    
+    #### 5. View Existing Data
+    - `GET /api/v1/teams` - List all teams
+    - `GET /api/v1/organizations` - List all organizations
+    - `GET /api/v1/users` - List all users
+    
+    ### Request Examples
+    
+    All endpoints include example requests that you can use directly in Swagger UI.
+    Click on the example dropdown to select pre-configured examples.
+    
+    ### Response Codes
+    
+    - **200**: Success
+    - **201**: Created successfully
+    - **400**: Bad request (validation error)
+    - **409**: Conflict (resource already exists)
+    - **500**: Internal server error
+    
+    ### Notes
+    
+    - All requests require valid DOMjudge API credentials (configured in .env)
+    - Team names must be unique
+    - Usernames and passwords are auto-generated if not provided
+    - Organizations are created automatically if they don't exist
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:3000
+    description: Development server (localhost) - Use this for testing
+  - url: http://127.0.0.1:3000
+    description: Development server (127.0.0.1) - Alternative localhost
+
+tags:
+  - name: Teams
+    description: |
+      Team management endpoints. 
+      
+      **Testing Tips:**
+      - Start with a simple team creation (only team name and university)
+      - Use dryRun=true to test without creating actual teams
+      - Check the response for generated username and password
+  - name: Organizations
+    description: |
+      Organization/University management endpoints.
+      
+      **Testing Tips:**
+      - Organizations are automatically created when you create teams
+      - Use GET endpoint to view all existing organizations
+  - name: Users
+    description: |
+      User management endpoints.
+      
+      **Testing Tips:**
+      - Users are automatically created when you create teams
+      - Each team gets one associated user account
+  - name: Health
+    description: |
+      Health check endpoints.
+      
+      **Testing Tips:**
+      - Use this endpoint to verify the API is running
+      - No authentication required
+      - Always returns 200 if server is running
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    CreateTeamRequest:
+      type: object
+      required:
+        - team
+        - uni
+      properties:
+        team:
+          type: string
+          description: Team name (must be unique)
+          example: Team Alpha
+          minLength: 1
+        uni:
+          type: string
+          description: University/Organization name
+          example: University of Technology
+          minLength: 1
+        username:
+          type: string
+          description: Username (optional, auto-generated as T{id} if not provided)
+          example: T12345
+        password:
+          type: string
+          description: Password (optional, auto-generated 10 characters if not provided)
+          example: password123
+          minLength: 5
+        email:
+          type: string
+          format: email
+          description: Email address (optional)
+          example: team@example.com
+        names:
+          type: string
+          description: Team member names, comma-separated (optional)
+          example: "John Doe, Jane Smith, Bob Johnson"
+        phone:
+          type: string
+          description: Phone number (optional)
+          example: "1234567890"
+      example:
+        team: Team Alpha
+        uni: University of Technology
+        email: teamalpha@example.com
+        names: "John Doe, Jane Smith"
+        phone: "1234567890"
+    
+    CreateTeamResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether the operation was successful
+          example: true
+        teamId:
+          type: number
+          description: Unique team ID (also used as user ID)
+          example: 12345
+        userId:
+          type: number
+          description: Unique user ID (same as team ID)
+          example: 12345
+        username:
+          type: string
+          description: Generated or provided username
+          example: T12345
+        password:
+          type: string
+          description: Generated or provided password
+          example: abc123xyz
+        message:
+          type: string
+          description: Optional message (e.g., dry run message)
+          example: Dry run - team would be created
+        error:
+          type: string
+          description: Error message if operation failed
+          example: Team 'Team Alpha' already exists
+      example:
+        success: true
+        teamId: 12345
+        userId: 12345
+        username: T12345
+        password: abc123xyz
+    
+    CreateTeamsBulkRequest:
+      type: object
+      required:
+        - teams
+      properties:
+        teams:
+          type: array
+          description: Array of teams to create
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CreateTeamRequest'
+        dryRun:
+          type: boolean
+          description: If true, simulate creation without actually creating teams
+          default: false
+          example: false
+      example:
+        dryRun: false
+        teams:
+          - team: Team Alpha
+            uni: University A
+          - team: Team Beta
+            uni: University B
+            email: teambeta@example.com
+    
+    CreateTeamsBulkResponse:
+      type: object
+      properties:
+        total:
+          type: number
+          description: Total number of teams in the request
+          example: 10
+        created:
+          type: number
+          description: Number of teams successfully created
+          example: 8
+        skipped:
+          type: number
+          description: Number of teams skipped (already exist)
+          example: 1
+        failed:
+          type: number
+          description: Number of teams that failed to create
+          example: 1
+        results:
+          type: array
+          description: Array of results for each team creation attempt
+          items:
+            $ref: '#/components/schemas/CreateTeamResponse'
+        createdUsers:
+          type: array
+          description: Array of successfully created users with credentials
+          items:
+            type: object
+            properties:
+              team:
+                type: string
+                example: Team Alpha
+              id:
+                type: number
+                example: 12345
+              username:
+                type: string
+                example: T12345
+              names:
+                type: string
+                example: "Member1, Member2"
+              email:
+                type: string
+                example: team@example.com
+              phone:
+                type: string
+                example: "1234567890"
+              password:
+                type: string
+                example: abc123xyz
+      example:
+        total: 2
+        created: 2
+        skipped: 0
+        failed: 0
+        results:
+          - success: true
+            teamId: 12345
+            userId: 12345
+            username: T12345
+            password: abc123xyz
+        createdUsers:
+          - team: Team Alpha
+            id: 12345
+            username: T12345
+            password: abc123xyz
+    
+    Team:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Team name
+          example: Team Alpha
+        id:
+          type: number
+          description: Team ID
+          example: 12345
+      example:
+        name: Team Alpha
+        id: 12345
+    
+    Organization:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Organization name
+          example: University of Technology
+        id:
+          oneOf:
+            - type: string
+            - type: number
+          description: Organization ID (can be string or number)
+          example: University of Technology
+      example:
+        name: University of Technology
+        id: University of Technology
+    
+    User:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Username
+          example: T12345
+        id:
+          type: number
+          description: User ID
+          example: 12345
+      example:
+        username: T12345
+        id: 12345
+    
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: Team name and university name are required
+        errors:
+          type: array
+          description: Array of validation errors
+          items:
+            type: object
+            properties:
+              msg:
+                type: string
+                description: Error message
+                example: Team name is required
+              param:
+                type: string
+                description: Parameter name
+                example: team
+              location:
+                type: string
+                description: Error location
+                example: body
+      examples:
+        validationError:
+          error: Validation failed
+          errors:
+            - msg: Team name is required
+              param: team
+              location: body
+        serverError:
+          error: Failed to create team
+        conflictError:
+          error: Team 'Team Alpha' already exists
+    
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Server status
+          example: ok
+        timestamp:
+          type: string
+          format: date-time
+          description: Current server timestamp
+          example: "2024-01-01T12:00:00.000Z"
+        service:
+          type: string
+          description: Service name
+          example: domjudge-automation-api
+      example:
+        status: ok
+        timestamp: "2024-01-01T12:00:00.000Z"
+        service: domjudge-automation-api
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: |
+        Check if the API server is running and healthy.
+        
+        **Testing:**
+        1. Click "Try it out"
+        2. Click "Execute"
+        3. Should return status 200 with server information
+        
+        **Use Cases:**
+        - Verify server is running before testing other endpoints
+        - Monitor server health
+        - No authentication required
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Server is healthy and running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+              example:
+                status: ok
+                timestamp: "2024-01-01T12:00:00.000Z"
+                service: domjudge-automation-api
+  
+  /api/v1/teams:
+    post:
+      summary: Create a single team and user
+      description: |
+        Creates a new team and associated user account in DOMjudge.
+        
+        **How to Test:**
+        1. Click "Try it out" button
+        2. Select an example from the dropdown or enter your data
+        3. Optionally set `dryRun=true` in query parameters to test without creating
+        4. Click "Execute" to send the request
+        5. Check the response for `teamId`, `username`, and `password`
+        
+        **Request Body:**
+        - `team` (required): Team name (must be unique)
+        - `uni` (required): University/Organization name
+        - `username` (optional): Username, auto-generated if not provided
+        - `password` (optional): Password, auto-generated if not provided
+        - `email` (optional): Email address
+        - `names` (optional): Team member names
+        - `phone` (optional): Phone number
+        
+        **Response:**
+        - Returns created team ID, user ID, username, and password
+        - Username format: T{id} (e.g., T12345)
+        - Password: 10-character alphanumeric string (if auto-generated)
+        
+        **Dry Run Mode:**
+        - Add `?dryRun=true` query parameter
+        - Simulates creation without actually creating the team
+        - Useful for testing request format
+      tags:
+        - Teams
+      parameters:
+        - in: query
+          name: dryRun
+          schema:
+            type: boolean
+            default: false
+          description: |
+            Set to `true` to simulate creation without actually creating the team.
+            Useful for testing the API without modifying DOMjudge data.
+          example: false
+      requestBody:
+        required: true
+        description: Team and user information
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTeamRequest'
+            examples:
+              minimal:
+                summary: Minimal request (required fields only)
+                description: Only team name and university are required
+                value:
+                  team: Team Alpha
+                  uni: University of Technology
+              complete:
+                summary: Complete request (all fields)
+                description: All fields included
+                value:
+                  team: Team Beta
+                  uni: University of Science
+                  username: T12345
+                  password: securepass123
+                  email: teambeta@example.com
+                  names: "John Doe, Jane Smith, Bob Johnson"
+                  phone: "1234567890"
+              withEmail:
+                summary: Team with email
+                description: Team with email and member names
+                value:
+                  team: Team Gamma
+                  uni: University of Engineering
+                  email: teamgamma@example.com
+                  names: "Alice Smith, Bob Jones"
+      responses:
+        '201':
+          description: Team and user created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateTeamResponse'
+              examples:
+                success:
+                  summary: Successful creation
+                  value:
+                    success: true
+                    teamId: 12345
+                    userId: 12345
+                    username: T12345
+                    password: abc123xyz
+                dryRun:
+                  summary: Dry run response
+                  value:
+                    success: true
+                    message: Dry run - team would be created
+                    teamId: 12345
+                    userId: 12345
+                    username: T12345
+                    password: abc123xyz
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missingFields:
+                  summary: Missing required fields
+                  value:
+                    errors:
+                      - msg: Team name is required
+                        param: team
+                        location: body
+                      - msg: University name is required
+                        param: uni
+                        location: body
+                invalidEmail:
+                  summary: Invalid email format
+                  value:
+                    errors:
+                      - msg: Invalid email format
+                        param: email
+                        location: body
+        '409':
+          description: Team already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateTeamResponse'
+              example:
+                success: false
+                error: Team 'Team Alpha' already exists
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Failed to create team - DOMjudge API error
+    
+    get:
+      summary: Get all teams
+      description: |
+        Retrieves a list of all teams in the contest.
+        
+        **How to Test:**
+        1. Click "Try it out"
+        2. Click "Execute"
+        3. View the list of teams with their IDs and names
+        
+        **Response:**
+        - Returns an array of teams
+        - Each team includes name and ID
+        - Empty array if no teams exist
+      tags:
+        - Teams
+      responses:
+        '200':
+          description: List of all teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Team'
+              examples:
+                teamsList:
+                  summary: List of teams
+                  value:
+                    - name: Team Alpha
+                      id: 12345
+                    - name: Team Beta
+                      id: 12346
+                empty:
+                  summary: No teams
+                  value: []
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Failed to fetch teams from DOMjudge
+  
+  /api/v1/teams/bulk:
+    post:
+      summary: Create multiple teams and users in bulk
+      description: |
+        Creates multiple teams and associated user accounts in DOMjudge in a single request.
+        
+        **How to Test:**
+        1. Click "Try it out"
+        2. Select an example or enter your teams array
+        3. Set `dryRun: true` in the request body to test without creating
+        4. Click "Execute"
+        5. Review the response with creation statistics
+        
+        **Request Body:**
+        - `teams` (required): Array of team objects (minimum 1 team)
+        - `dryRun` (optional): Set to `true` to simulate creation
+        
+        **Response:**
+        - Returns statistics: total, created, skipped, failed
+        - Includes results array with details for each team
+        - Includes createdUsers array with credentials
+        
+        **Behavior:**
+        - Automatically skips teams that already exist
+        - Continues processing even if one team fails
+        - Creates organizations automatically if they don't exist
+        - Each team gets a unique ID and username
+        
+        **Best Practices:**
+        - Start with `dryRun: true` to test the request
+        - Check the response for any failed teams
+        - Save the `createdUsers` array for credential distribution
+      tags:
+        - Teams
+      requestBody:
+        required: true
+        description: Bulk team creation request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTeamsBulkRequest'
+            examples:
+              bulkCreate:
+                summary: Create multiple teams
+                description: Create 3 teams with different configurations
+                value:
+                  dryRun: false
+                  teams:
+                    - team: Team Alpha
+                      uni: University A
+                    - team: Team Beta
+                      uni: University B
+                      email: teambeta@example.com
+                    - team: Team Gamma
+                      uni: University C
+                      email: teamgamma@example.com
+                      names: "Alice, Bob, Charlie"
+              dryRun:
+                summary: Dry run mode
+                description: Test the request without creating teams
+                value:
+                  dryRun: true
+                  teams:
+                    - team: Test Team 1
+                      uni: Test University
+                    - team: Test Team 2
+                      uni: Test University
+              mixedData:
+                summary: Teams with mixed data
+                description: Some teams with all fields, some with minimal fields
+                value:
+                  dryRun: false
+                  teams:
+                    - team: Team Minimal
+                      uni: University Minimal
+                    - team: Team Complete
+                      uni: University Complete
+                      username: TC99999
+                      password: custompass
+                      email: complete@example.com
+                      names: "Member One, Member Two"
+                      phone: "9876543210"
+      responses:
+        '201':
+          description: Teams and users created successfully (or partially)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateTeamsBulkResponse'
+              examples:
+                allSuccess:
+                  summary: All teams created
+                  value:
+                    total: 2
+                    created: 2
+                    skipped: 0
+                    failed: 0
+                    results:
+                      - success: true
+                        teamId: 12345
+                        userId: 12345
+                        username: T12345
+                        password: abc123xyz
+                      - success: true
+                        teamId: 12346
+                        userId: 12346
+                        username: T12346
+                        password: xyz789abc
+                    createdUsers:
+                      - team: Team Alpha
+                        id: 12345
+                        username: T12345
+                        password: abc123xyz
+                      - team: Team Beta
+                        id: 12346
+                        username: T12346
+                        password: xyz789abc
+                partialSuccess:
+                  summary: Partial success (some skipped)
+                  value:
+                    total: 3
+                    created: 1
+                    skipped: 1
+                    failed: 1
+                    results:
+                      - success: true
+                        teamId: 12345
+                        userId: 12345
+                        username: T12345
+                        password: abc123xyz
+                      - success: false
+                        error: Team 'Team Beta' already exists
+                      - success: false
+                        error: Team name and university name are required
+                    createdUsers:
+                      - team: Team Alpha
+                        id: 12345
+                        username: T12345
+                        password: abc123xyz
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                emptyArray:
+                  summary: Empty teams array
+                  value:
+                    error: Teams array cannot be empty
+                    errors:
+                      - msg: Teams array cannot be empty
+                        param: teams
+                        location: body
+                missingFields:
+                  summary: Missing required fields in team
+                  value:
+                    errors:
+                      - msg: Team name is required for all teams
+                        param: teams[0].team
+                        location: body
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Failed to process bulk team creation
+  
+  /api/v1/organizations:
+    get:
+      summary: Get all organizations
+      description: |
+        Retrieves a list of all organizations (universities) in the contest.
+        
+        **How to Test:**
+        1. Click "Try it out"
+        2. Click "Execute"
+        3. View the list of organizations
+        
+        **Response:**
+        - Returns an array of organizations
+        - Each organization includes name and ID
+        - Organizations are automatically created when teams are created
+      tags:
+        - Organizations
+      responses:
+        '200':
+          description: List of all organizations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organization'
+              examples:
+                organizationsList:
+                  summary: List of organizations
+                  value:
+                    - name: University of Technology
+                      id: University of Technology
+                    - name: University of Science
+                      id: University of Science
+                empty:
+                  summary: No organizations
+                  value: []
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Failed to fetch organizations from DOMjudge
+  
+  /api/v1/users:
+    get:
+      summary: Get all users
+      description: |
+        Retrieves a list of all users in the system.
+        
+        **How to Test:**
+        1. Click "Try it out"
+        2. Click "Execute"
+        3. View the list of users with their usernames and IDs
+        
+        **Response:**
+        - Returns an array of users
+        - Each user includes username and ID
+        - Users are automatically created when teams are created
+      tags:
+        - Users
+      responses:
+        '200':
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+              examples:
+                usersList:
+                  summary: List of users
+                  value:
+                    - username: T12345
+                      id: 12345
+                    - username: T12346
+                      id: 12346
+                empty:
+                  summary: No users
+                  value: []
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Failed to fetch users from DOMjudge
