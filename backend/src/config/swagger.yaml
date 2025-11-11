@@ -1,24 +1,52 @@
 openapi: 3.0.0
 info:
-  title: DOMjudge Automation API
+  title: DOMjudge Automation API - Interactive Documentation
   version: 1.0.0
   description: |
-    # DOMjudge Automation API
+    # 🚀 DOMjudge Automation API - Fully Interactive
     
     API for automating team and user creation in DOMjudge contest management system.
     
-    ## How to Test This API
+    ## ✅ THIS API IS FULLY INTERACTIVE - YOU CAN TEST IT RIGHT HERE!
     
-    ### Using Swagger UI (Recommended)
+    ### 🎯 Quick Start - Test Now!
     
-    1. **Access Swagger UI**: Open `http://localhost:3000/api-docs` in your browser
-    2. **Select Server**: Choose the appropriate server from the dropdown (default: http://localhost:3000)
-    3. **Try an Endpoint**:
-       - Expand any endpoint section
-       - Click the **"Try it out"** button
-       - Fill in the request parameters or body
-       - Click **"Execute"** to send the request
-       - View the response below
+    1. **Scroll down** to see all available endpoints
+    2. **Click "Try it out"** button on any endpoint (it's enabled by default!)
+    3. **Fill in the request** (or use the examples)
+    4. **Click "Execute"** to send the request
+    5. **See the response** instantly below
+    
+    ### 🧪 Start Testing Here (Recommended Order)
+    
+    **Step 1: Test GET Request**
+    - Go to `GET /api/v1/test` endpoint
+    - Click **"Try it out"** → **"Execute"**
+    - Should return: `{"message": "API is working!..."}`
+    
+    **Step 2: Test POST Request**
+    - Go to `POST /api/v1/test` endpoint  
+    - Click **"Try it out"** → Enter JSON → **"Execute"**
+    - Should echo back your request body
+    
+    **Step 3: Test Health Check**
+    - Go to `GET /health` endpoint
+    - Click **"Try it out"** → **"Execute"**
+    - Should return server status
+    
+    **Step 4: Create a Team**
+    - Go to `POST /api/v1/teams` endpoint
+    - Click **"Try it out"**
+    - Use the example or enter your data
+    - Click **"Execute"** to create a team!
+    
+    ### 💡 Tips for Using Swagger UI
+    
+    - **"Try it out" buttons are always enabled** - no configuration needed!
+    - **Use examples** - Click the example dropdown to see pre-filled requests
+    - **Check responses** - All responses show below the request
+    - **Server selection** - Use the dropdown at the top to select server URL
+    - **Filter endpoints** - Use the search box to find endpoints quickly
     
     ### Testing Steps
     
@@ -444,6 +472,119 @@ paths:
                 status: ok
                 timestamp: "2024-01-01T12:00:00.000Z"
                 service: domjudge-automation-api
+                message: Server is running and ready to accept requests
+  
+  /api/v1/test:
+    get:
+      summary: Test GET endpoint
+      description: |
+        Simple test endpoint to verify Swagger UI is working and can send requests.
+        
+        **How to Test:**
+        1. Click "Try it out" button (should be visible and enabled)
+        2. Click "Execute" button
+        3. Check the response - should return success message
+        4. If this works, Swagger UI is properly configured!
+        
+        **Use this endpoint to verify:**
+        - Swagger UI can send requests
+        - Server is responding
+        - CORS is working
+        - Requests are being processed
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Test successful - Swagger UI is working
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: API is working! You can send requests from Swagger UI.
+                  timestamp:
+                    type: string
+                    format: date-time
+                  method:
+                    type: string
+                    example: GET
+                  path:
+                    type: string
+                    example: /api/v1/test
+              example:
+                message: API is working! You can send requests from Swagger UI.
+                timestamp: "2024-01-01T12:00:00.000Z"
+                method: GET
+                path: /api/v1/test
+    
+    post:
+      summary: Test POST endpoint
+      description: |
+        Simple test POST endpoint to verify Swagger UI can send POST requests with body.
+        
+        **How to Test:**
+        1. Click "Try it out" button
+        2. Enter any JSON in the request body (or leave empty)
+        3. Click "Execute" button
+        4. Check the response - should echo back your request body
+        
+        **Example Request Body:**
+        ```json
+        {
+          "test": "data",
+          "number": 123
+        }
+        ```
+      tags:
+        - Health
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+            examples:
+              simple:
+                summary: Simple test data
+                value:
+                  test: "Hello from Swagger UI"
+                  number: 123
+              empty:
+                summary: Empty body
+                value: {}
+      responses:
+        '200':
+          description: Test POST successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: POST request received successfully!
+                  timestamp:
+                    type: string
+                    format: date-time
+                  body:
+                    type: object
+                    description: The request body that was sent
+                  method:
+                    type: string
+                    example: POST
+                  path:
+                    type: string
+                    example: /api/v1/test
+              example:
+                message: POST request received successfully!
+                timestamp: "2024-01-01T12:00:00.000Z"
+                body:
+                  test: "Hello from Swagger UI"
+                  number: 123
+                method: POST
+                path: /api/v1/test
   
   /api/v1/teams:
     post:
